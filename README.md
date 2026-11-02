@@ -158,3 +158,4 @@ Invalid, corrupt, fake, encrypted or scanned PDF; size, page and document limits
 * Auth is deliberately simple (no email verification, password reset or rate limiting). Assistant tokens are stored in plaintext so the dashboard can re-display the URL. Production would add rate limiting, per-assistant allowed-origin lists and abuse monitoring on `/api/ask`.
 * In personal-story questions, words that appear nowhere in the documents are ignored when judging relevance, so an unrelated personal question that shares a generic word with the documents could be answered loosely. A production system would add an LLM relevance check.
 * No OCR, no conversation memory (each question is independent), English only, single-node H2 (switch to MySQL/PostgreSQL by changing the datasource properties; `schema.sql` is plain SQL).
+"# ai-knowledge-decision-assistant" 
