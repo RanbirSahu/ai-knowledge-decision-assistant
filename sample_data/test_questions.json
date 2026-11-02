@@ -1,0 +1,31 @@
+{
+  "greenfield": [
+    {"id": "G1", "type": "direct_info", "q": "What is the application fee?", "expect_answered": true, "expect_contains": ["1500"], "expect_ref": "Admissions_FAQ.pdf"},
+    {"id": "G2", "type": "direct_info", "q": "What is the application deadline for undergraduate admission?", "expect_answered": true, "expect_contains": ["30 June"], "expect_ref": "Admissions_FAQ.pdf"},
+    {"id": "G3", "type": "policy", "q": "What time does the hostel gate close on weekdays?", "expect_answered": true, "expect_contains": ["10 PM"], "expect_ref": "Hostel_Policy.pdf"},
+    {"id": "G4", "type": "procedural", "q": "How do I apply for a scholarship?", "expect_answered": true, "expect_contains": ["Step 1"], "expect_ref": "Scholarship_Rules.pdf"},
+    {"id": "G5", "type": "multi-condition (not eligible)", "q": "I am a 2nd year student with a 3.6 GPA and I already hold a sports scholarship. Can I get the merit scholarship?", "expect_outcome": "NOT_ELIGIBLE", "expect_ref": "Scholarship_Rules.pdf"},
+    {"id": "G6", "type": "multi-condition (eligible)", "q": "I am a third year student with a GPA of 3.8 and no sports scholarship. Can I get the merit scholarship?", "expect_outcome": "ELIGIBLE", "expect_ref": "Scholarship_Rules.pdf"},
+    {"id": "G7", "type": "multiple structured decisions (need-based)", "q": "My family income is 4 lakh per year and my GPA is 2.8. Am I eligible for the need-based grant?", "expect_outcome": "ELIGIBLE", "expect_ref": "Scholarship_Rules.pdf"},
+    {"id": "G8", "type": "multi-condition (missing info)", "q": "Can I get the merit scholarship? I have a 3.7 GPA.", "expect_outcome": "NEED_MORE_INFO"},
+    {"id": "G9", "type": "comparison", "q": "What is the difference between the merit scholarship and the sports scholarship?", "expect_answered": true, "expect_contains": ["50 percent", "70 percent"]},
+    {"id": "G10", "type": "not in knowledge base", "q": "What is the cafeteria menu on Friday?", "expect_outcome": "NO_KNOWLEDGE"},
+    {"id": "G11", "type": "not in knowledge base", "q": "Does the university offer a PhD in astrophysics?", "expect_outcome": "NO_KNOWLEDGE"}
+  ],
+  "zenith": [
+    {"id": "Z1", "type": "direct_info", "q": "How long do I have to return an unopened item?", "expect_answered": true, "expect_contains": ["30 days"], "expect_ref": "Returns_and_Refund_Policy.pdf"},
+    {"id": "Z2", "type": "multi-condition (eligible)", "q": "I bought headphones 10 days ago and opened them. They are undamaged and I have the receipt. Can I return them?", "expect_outcome": "ELIGIBLE", "expect_ref": "Returns_and_Refund_Policy.pdf"},
+    {"id": "Z3", "type": "multi-condition (not eligible)", "q": "I bought a laptop 20 days ago and opened it. It is undamaged and I have the receipt. Can I return it?", "expect_outcome": "NOT_ELIGIBLE", "expect_ref": "Returns_and_Refund_Policy.pdf"},
+    {"id": "Z4", "type": "multiple structured decisions (warranty)", "q": "I bought a phone 8 months ago and it stopped working after I spilled water on it. Is it covered under warranty?", "expect_outcome": "NOT_ELIGIBLE", "expect_ref": "Warranty_Policy.pdf"},
+    {"id": "Z5", "type": "comparison", "q": "What is the difference between the standard warranty and the extended protection plan?", "expect_answered": true, "expect_contains": ["12 months", "24 more months"]},
+    {"id": "Z6", "type": "procedural", "q": "How do I start a return?", "expect_answered": true, "expect_contains": ["Step 1"], "expect_ref": "Returns_and_Refund_Policy.pdf"},
+    {"id": "Z7", "type": "direct_info", "q": "Do you ship internationally?", "expect_answered": true, "expect_contains": ["not available"], "expect_ref": "Shipping_Guide.pdf"},
+    {"id": "Z8", "type": "not in knowledge base", "q": "What is the price of the Zenith X1 laptop?", "expect_outcome": "NO_KNOWLEDGE"}
+  ],
+  "isolation": [
+    {"id": "I1", "as": "zenith", "q": "What GPA do I need for the merit scholarship?", "expect_outcome": "NO_KNOWLEDGE"},
+    {"id": "I2", "as": "zenith", "q": "What time does the hostel gate close?", "expect_outcome": "NO_KNOWLEDGE"},
+    {"id": "I3", "as": "greenfield", "q": "How many days do I have to return an opened laptop?", "expect_outcome": "NO_KNOWLEDGE"},
+    {"id": "I4", "as": "greenfield", "q": "Does the warranty cover liquid damage?", "expect_outcome": "NO_KNOWLEDGE"}
+  ]
+}

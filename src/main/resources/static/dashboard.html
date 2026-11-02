@@ -1,0 +1,103 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Assistant Dashboard</title><link rel="stylesheet" href="/static/style.css"></head><body>
+<div id="auth" class="wrap" style="max-width:440px;margin-top:60px">
+  <div class="card">
+    <h1>AI Knowledge Assistant</h1><p class="muted">Turn your PDFs into an embeddable assistant.</p>
+    <div class="tabs"><button id="tabLogin" class="on" onclick="mode('login')">Log in</button><button id="tabReg" onclick="mode('reg')">Create account</button></div>
+    <div id="orgRow" style="display:none"><label>Organization name</label><input id="org" placeholder="Greenfield University"></div>
+    <label>Email</label><input id="email" type="email" placeholder="admin@yourorg.com">
+    <label>Password</label><input id="pw" type="password" placeholder="min. 8 characters" onkeydown="if(event.key==='Enter')submitAuth()">
+    <p><button id="authBtn" onclick="submitAuth()">Log in</button></p><div id="authErr" class="err"></div>
+  </div>
+</div>
+
+<div id="app" style="display:none">
+  <div class="top"><strong id="orgName"></strong><button class="ghost" onclick="logout()">Log out</button></div>
+  <div class="wrap">
+    <div class="card"><h2>Usage</h2>
+      <div class="stats"><div class="stat"><b id="uAsked">0</b><span class="muted small">Questions asked</span></div>
+      <div class="stat"><b id="uAns">0</b><span class="muted small">Answered</span></div>
+      <div class="stat"><b id="uUn">0</b><span class="muted small">Unable to answer<br>(human review)</span></div></div></div>
+
+    <div class="grid">
+      <div class="card"><h2>Knowledge base</h2>
+        <p class="muted small" id="limits"></p>
+        <div class="bar"><i id="docBar" style="width:0"></i></div><p class="small muted" id="docCount"></p>
+        <div class="drop"><input type="file" id="file" accept="application/pdf,.pdf" multiple style="width:auto"><br><br>
+          <button id="upBtn" onclick="upload()">Upload PDF(s)</button>
+          <p class="small muted">Uploading a file with the same name replaces the old one.</p></div>
+        <div id="upMsg"></div>
+        <table style="margin-top:10px"><thead><tr><th>Document</th><th>Pages</th><th>Size</th><th></th></tr></thead><tbody id="docs"></tbody></table>
+      </div>
+
+      <div class="card"><h2>Assistant</h2>
+        <label>Assistant URL (public, no login needed)</label><pre id="url"></pre>
+        <p><a id="openLink" target="_blank"><button class="ghost" type="button">Open assistant</button></a>
+        <button class="ghost" onclick="copy('url')">Copy URL</button></p>
+        <label>Embed — iframe</label><pre id="iframe"></pre><button class="ghost" onclick="copy('iframe')">Copy iframe code</button>
+        <label>Embed — floating chat button (JS)</label><pre id="script"></pre><button class="ghost" onclick="copy('script')">Copy script code</button>
+        <hr style="border:0;border-top:1px solid var(--line);margin:16px 0">
+        <p class="small muted">Regenerating creates a new URL and immediately disables the old one (use it if the URL leaks).</p>
+        <button class="danger" onclick="regen()">Regenerate token</button><div id="aMsg"></div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+let TOKEN = localStorage.getItem('adm') || '', REG = false;
+const $ = id => document.getElementById(id);
+const api = async (path, opts = {}) => {
+  opts.headers = Object.assign({}, opts.headers, TOKEN ? {Authorization: 'Bearer ' + TOKEN} : {});
+  const r = await fetch(path, opts); let d = {}; try { d = await r.json() } catch (e) {}
+  if (r.status === 401 && TOKEN && !path.includes('/auth/')) { logout(); }
+  if (!r.ok) throw new Error(d.detail || ('Request failed (' + r.status + ')'));
+  return d;
+};
+function mode(m){REG=m==='reg';$('orgRow').style.display=REG?'block':'none';$('tabReg').className=REG?'on':'';$('tabLogin').className=REG?'':'on';$('authBtn').textContent=REG?'Create account':'Log in';$('authErr').textContent=''}
+async function submitAuth(){
+  $('authErr').textContent='';
+  try{
+    const body = REG ? {org_name:$('org').value,email:$('email').value,password:$('pw').value} : {email:$('email').value,password:$('pw').value};
+    const d = await api(REG?'/api/auth/register':'/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    TOKEN=d.token; localStorage.setItem('adm',TOKEN); start();
+  }catch(e){$('authErr').textContent=e.message}
+}
+async function logout(){ try{ if(TOKEN) await fetch('/api/auth/logout',{method:'POST',headers:{Authorization:'Bearer '+TOKEN}}) }catch(e){}
+  TOKEN='';localStorage.removeItem('adm');$('app').style.display='none';$('auth').style.display='block'}
+async function start(){
+  try{
+    const me = await api('/api/admin/me'); $('orgName').textContent = me.org_name;
+    $('limits').textContent = `Limits: ${me.limits.max_docs} PDFs · ${me.limits.max_pages} pages each · ${me.limits.max_mb} MB each`;
+    $('auth').style.display='none'; $('app').style.display='block';
+    await Promise.all([loadDocs(), loadAssistant(), loadUsage()]);
+  }catch(e){ $('auth').style.display='block' }
+}
+async function loadDocs(){
+  const d = await api('/api/admin/documents'); const body=$('docs'); body.innerHTML='';
+  d.documents.forEach(x=>{const tr=document.createElement('tr');
+    tr.innerHTML=`<td></td><td>${x.pages}</td><td>${x.size_kb} KB</td><td><button class="danger" style="padding:4px 9px">Delete</button></td>`;
+    tr.children[0].textContent=x.filename; tr.querySelector('button').onclick=async()=>{ if(confirm('Delete '+x.filename+'?')){await api('/api/admin/documents/'+x.id,{method:'DELETE'});loadDocs()} };
+    body.appendChild(tr)});
+  if(!d.documents.length) body.innerHTML='<tr><td colspan="4" class="muted">No documents yet. Upload a PDF to get started.</td></tr>';
+  $('docCount').textContent=`${d.documents.length} of ${d.max_docs} documents used`; $('docBar').style.width=(100*d.documents.length/d.max_docs)+'%';
+}
+async function upload(){
+  const files=[...$('file').files]; $('upMsg').innerHTML='';
+  if(!files.length){$('upMsg').innerHTML='<div class="err">Choose at least one PDF first.</div>';return}
+  $('upBtn').disabled=true;
+  for(const f of files){
+    const fd=new FormData(); fd.append('file',f);
+    try{ const r=await api('/api/admin/documents',{method:'POST',body:fd});
+      $('upMsg').innerHTML+=`<div class="okmsg"></div>`; $('upMsg').lastChild.textContent=`✔ ${r.filename}: ${r.pages} pages, ${r.chunks} sections indexed${r.replaced?' (replaced previous version)':''}`;
+    }catch(e){ $('upMsg').innerHTML+=`<div class="err"></div>`; $('upMsg').lastChild.textContent='✘ '+f.name+': '+e.message }
+  }
+  $('file').value=''; $('upBtn').disabled=false; loadDocs();
+}
+function showAssistant(a){$('url').textContent=a.url;$('iframe').textContent=a.iframe_code;$('script').textContent=a.script_code;$('openLink').href=a.url}
+async function loadAssistant(){showAssistant(await api('/api/admin/assistant'))}
+async function regen(){ if(!confirm('The current assistant URL and any embeds using it will stop working. Continue?'))return;
+  showAssistant(await api('/api/admin/assistant/regenerate',{method:'POST'})); $('aMsg').innerHTML='<div class="okmsg">New URL generated. Update your embeds.</div>' }
+async function loadUsage(){const u=await api('/api/admin/usage');$('uAsked').textContent=u.asked;$('uAns').textContent=u.answered;$('uUn').textContent=u.unable_to_answer}
+function copy(id){navigator.clipboard.writeText($(id).textContent);}
+if(TOKEN) start();
+</script></body></html>

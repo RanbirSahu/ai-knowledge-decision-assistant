@@ -1,0 +1,16 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Embed demo — external page</title>
+<style>body{font:16px/1.6 system-ui,sans-serif;max-width:1000px;margin:30px auto;padding:0 20px;color:#1c2230}
+.row{display:flex;gap:24px;flex-wrap:wrap}.col{flex:1;min-width:340px}h2{margin-bottom:4px}</style></head><body>
+<h1>Partner website (external page)</h1>
+<p>This page is NOT part of the assistant app. It embeds two different organizations' assistants to prove they are isolated:
+the left one only knows Greenfield University's PDFs, the right one only knows Zenith Electronics' PDFs.</p>
+<div class="row">
+  <div class="col"><h2>Greenfield University — iframe embed</h2>
+    <iframe src="{{BASE}}/a/{{TOKEN_A}}" width="100%" height="560" style="border:1px solid #ddd;border-radius:12px" title="Greenfield assistant"></iframe></div>
+  <div class="col"><h2>Zenith Electronics — iframe embed</h2>
+    <iframe src="{{BASE}}/a/{{TOKEN_B}}" width="100%" height="560" style="border:1px solid #ddd;border-radius:12px" title="Zenith assistant"></iframe></div>
+</div>
+<p style="margin-top:30px">Floating-button (JS) embed — look at the bottom-right corner:</p>
+<script src="{{BASE}}/static/embed.js" data-token="{{TOKEN_A}}" defer></script>
+</body></html>

@@ -1,0 +1,45 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Assistant</title><link rel="stylesheet" href="/static/style.css">
+<style>
+html,body{height:100%}body{display:flex;flex-direction:column}
+header{padding:12px 16px;background:var(--brand);color:#fff;font-weight:700}
+#log{flex:1;overflow:auto;padding:14px;display:flex;flex-direction:column;gap:10px}
+.msg{max-width:92%;padding:10px 12px;border-radius:12px;white-space:pre-wrap;word-wrap:break-word}
+.me{align-self:flex-end;background:var(--brand);color:#fff}.bot{align-self:flex-start;background:var(--card);border:1px solid var(--line)}
+.badge{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:99px;margin-bottom:6px;border:1px solid var(--line)}
+.ELIGIBLE{color:var(--ok)}.NOT_ELIGIBLE{color:var(--bad)}.NEED_MORE_INFO,.NO_KNOWLEDGE{color:var(--warn)}
+.refs{margin-top:8px;display:flex;flex-wrap:wrap;gap:6px}.ref{font-size:12px;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:3px 8px;cursor:help}
+details{margin-top:8px;font-size:12px;color:var(--muted)}details pre{max-height:220px}
+form{display:flex;gap:8px;padding:10px;border-top:1px solid var(--line);background:var(--card)}
+.chips{padding:0 14px 8px;display:flex;gap:6px;flex-wrap:wrap}.chips button{background:var(--card);color:var(--brand);border:1px solid var(--line);font-weight:500;font-size:12.5px;padding:5px 10px}
+</style></head><body>
+<header id="title">Assistant</header>
+<div id="log"><div class="msg bot" id="hello">Hi! Ask me anything about our documents.</div></div>
+<div class="chips" id="chips"></div>
+<form id="f"><input id="q" placeholder="Type your question…" autocomplete="off" maxlength="1000"><button id="send">Send</button></form>
+<script>
+const token = location.pathname.split('/').pop(); const log = document.getElementById('log');
+const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;');
+const md = s => esc(s).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>');
+fetch('/api/assistant/'+encodeURIComponent(token)).then(r=>r.ok?r.json():Promise.reject()).then(d=>{
+  document.getElementById('title').textContent=d.org_name+' · Assistant'; document.title=d.org_name+' Assistant';
+}).catch(()=>{ add('bot','This assistant link is invalid or has been disabled.'); document.getElementById('f').style.display='none'; });
+function add(kind, html){const d=document.createElement('div');d.className='msg '+kind;d.innerHTML=html;log.appendChild(d);log.scrollTop=log.scrollHeight;return d}
+const LABEL={ELIGIBLE:'✔ Eligible',NOT_ELIGIBLE:'✘ Not eligible',NEED_MORE_INFO:'? More info needed',NO_KNOWLEDGE:'Not in knowledge base'};
+document.getElementById('f').onsubmit = async e => {
+  e.preventDefault(); const qEl=document.getElementById('q'), q=qEl.value.trim();
+  if(!q){add('bot','Please type a question first.');return}
+  add('me',esc(q)); qEl.value=''; document.getElementById('chips').innerHTML=''; const wait=add('bot','Thinking…'); document.getElementById('send').disabled=true;
+  try{
+    const r=await fetch('/api/ask',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token,question:q})}); const d=await r.json();
+    if(!r.ok) throw new Error(d.detail||'Something went wrong.');
+    let h=''; if(LABEL[d.outcome]) h+=`<span class="badge ${d.outcome}">${LABEL[d.outcome]}</span><br>`;
+    h+=md(d.answer);
+    if(d.references.length) h+='<div class="refs">'+d.references.map(x=>`<span class="ref" title="${esc(x.snippet)}">📄 ${esc(x.label)}</span>`).join('')+'</div>';
+    if(d.notes&&d.notes.length) h+=`<div class="small muted" style="margin-top:6px">${d.notes.map(esc).join('<br>')}</div>`;
+    if(d.decisions.length>2) h+=`<details><summary>How was this decided?</summary><pre>${esc(d.trace.map(t=>t.step+(t.ms!==undefined?'  ('+t.ms+' ms)':'')).join('\n'))}\n\n${esc(JSON.stringify(d.decisions.filter(x=>x.decision_type!=='choice'),null,1))}</pre></details>`;
+    wait.innerHTML=h;
+  }catch(err){ wait.innerHTML='⚠️ '+esc(err.message) }
+  document.getElementById('send').disabled=false; qEl.focus(); log.scrollTop=log.scrollHeight;
+};
+</script></body></html>

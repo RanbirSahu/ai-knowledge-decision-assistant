@@ -1,0 +1,7 @@
+.env
+data/
+target/
+.idea/
+*.iml
+demo/embed_demo.html
+.idea/
